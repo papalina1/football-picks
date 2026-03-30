@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Football Picks — Daily Edge</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Syne+Mono&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #05080b;
+    --surface: #0b1117;
+    --surface2: #111920;
+    --border: #1a2730;
+    --border2: #223040;
+    --green: #00ff87;
+    --green-dim: rgba(0,255,135,0.08);
+    --green-mid: rgba(0,255,135,0.15);
+    --red: #ff4560;
+    --yellow: #ffd60a;
+    --blue: #38bdf8;
+    --text: #c8dde8;
+    --muted: #3d5a6a;
+    --white: #f0f8ff;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* scanline overlay */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.08) 2px,
+      rgba(0,0,0,0.08) 4px
+    );
+  }
+
+  /* green glow top */
+  body::after {
+    content: '';
+    position: fixed;
+    top: -200px; left: 50%;
+    transform: translateX(-50%);
+    width: 600px; height: 400px;
+    background: radial-gradient(ellipse, rgba(0,255,135,0.06) 0%, transparent 70%);
+    pointer-events: none; z-index: 0;
+  }
+
+  .app { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 0 20px 80px; }
+
+  /* ── HEADER ── */
+  header {
+    padding: 40px 0 32px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 32px;
+  }
+
+  .header-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  .logo-area {}
+  .logo-tag {
+    font-family: 'Syne Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.25em;
+    color: var(--green);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  h1 {
+    font-size: clamp(28px, 6vw, 52px);
+    font-weight: 800;
+    color: var(--white);
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+  h1 em {
+    font-style: normal;
+    color: var(--green);
+  }
+
+  .date-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 18px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .date-box .day {
+    font-size: 11px;
+    font-family: 'Syne Mono', monospace;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .date-box .date {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--white);
+    margin-top: 2px;
+  }
+
+  /* status bar */
+  .status-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+  }
+  .status-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+  .status-text {
+    font-family: 'Syne Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+  }
+  .status-text span { color: var(--green); }
+
+  /* ── LEAGUES FILTER ── */
+  .leagues-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+  }
+  .league-btn {
+    font-family: 'Syne Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    padding: 5px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .league-btn:hover { border-color: var(--border2); color: var(--text); }
+  .league-btn.active { border-color: var(--green); color: var(--green); background: var(--green-dim); }
+
+  /* ── SUMMARY STRIP ── */
+  .summary-strip {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 28px;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .stat-card .s-label {
+    font-family: 'Syne Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .stat-card .s-val {
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--white);
+    line-height: 1;
+  }
+  .stat-card .s-val.green { color: var(--green); }
+  .stat-card .s-val.yellow { color: var(--yellow); }
+  .stat-card .s-val.red { color: var(--red); }
+
+  /* ── LOADING ── */
+  .loading-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 20px;
+    gap: 20px;
+  }
+  .loader {
+    width: 48px; height: 48px;
+    border: 2px solid var(--border);
+    border-top-color: var(--green);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-steps { display: flex; flex-direction: column; gap: 8px; }
+  .load-step {
+    font-family: 'Syne Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    display: flex; align-items: center; gap: 8px;
+    opacity: 0;
+    transition: opacity 0.4s, color 0.3s;
+  }
+  .load-step.active { opacity: 1; color: var(--text); }
+  .load-step.done { opacity: 1; color: var(--green); }
+  .load-step .step-icon { font-size: 12px; }
+
+  /* ── PICKS ── */
+  .section-label {
+    font-family: 'Syne Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .picks-list { display: flex; flex-direction: column; gap: 14px; margin-bottom: 32px; }
+
+  .pick-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    position: relative;
+    transition: border-color 0.2s, transform 0.2s;
+    animation: fadeUp 0.5s ease both;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .pick-card:hover { border-color: var(--border2); transform: translateY(-2px); }
+  .pick-card.grade-a { border-color: rgba(0,255,135,0.3); }
+  .pick-card.grade-a::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--green), transparent);
+  }
+  .pick-card.grade-b { border-color: rgba(56,189,248,0.25); }
+  .pick-card.grade-b::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--blue), transparent);
+  }
+  .pick-card.grade-c { border-color: rgba(255,214,10,0.2); }
+  .pick-card.grade-c::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--yellow), transparent);
+  }
+
+  .pick-inner { padding: 20px 22px; }
+
+  .pick-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+
+  .pick-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .league-tag {
+    font-family: 'Syne Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 3px 8px;
+  }
+  .kick-time {
+    font-family: 'Syne Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  .grade-badge {
+    font-family: 'Syne Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    padding: 4px 12px;
+    border-radius: 20px;
+    flex-shrink: 0;
+  }
+  .grade-badge.A { background: rgba(0,255,135,0.12); color: var(--green); border: 1px solid rgba(0,255,135,0.3); }
+  .grade-badge.B { background: rgba(56,189,248,0.1); color: var(--blue); border: 1px solid rgba(56,189,248,0.25); }
+  .grade-badge.C { background: rgba(255,214,10,0.08); color: var(--yellow); border: 1px solid rgba(255,214,10,0.2); }
+
+  .pick-teams {
+    margin-bottom: 16px;
+  }
+  .matchup {
+    font-size: clamp(17px, 3.5vw, 22px);
+    font-weight: 700;
+    color: var(--white);
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+    margin-bottom: 4px;
+  }
+  .bet-line {
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .bet-line strong {
+    color: var(--green);
+    font-weight: 600;
+  }
+
+  .pick-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+  .pstat {
+    background: var(--surface2);
+    border-radius: 8px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+  }
+  .pstat .ps-label {
+    font-family: 'Syne Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .pstat .ps-val {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--white);
+  }
+  .pstat .ps-val.green { color: var(--green); }
+  .pstat .ps-val.blue { color: var(--blue); }
+
+  .bet-action {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .bet-instruction {
+    font-size: 13px;
+    color: var(--text);
+  }
+  .bet-instruction .highlight {
+    color: var(--green);
+    font-weight: 600;
+  }
+  .bet365-btn {
+    background: #00804a;
+    color: #fff;
+    font-family: 'Syne', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 8px 18px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.15s;
+    flex-shrink: 0;
+  }
+  .bet365-btn:hover { background: #009a5a; }
+
+  /* ── NO PICKS ── */
+  .no-picks {
+    text-align: center;
+    padding: 60px 20px;
+    border: 1px dashed var(--border);
+    border-radius: 14px;
+    margin-bottom: 32px;
+  }
+  .no-picks .np-icon { font-size: 48px; margin-bottom: 16px; }
+  .no-picks h2 { font-size: 22px; font-weight: 700; color: var(--white); margin-bottom: 8px; }
+  .no-picks p { font-size: 14px; color: var(--muted); max-width: 380px; margin: 0 auto; line-height: 1.6; }
+
+  /* ── WATCHLIST ── */
+  .watch-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 32px; }
+  .watch-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .watch-teams { flex: 1; font-size: 14px; font-weight: 600; color: var(--text); }
+  .watch-league { font-family: 'Syne Mono', monospace; font-size: 9px; color: var(--muted); letter-spacing: 0.1em; }
+  .watch-reason {
+    font-family: 'Syne Mono', monospace;
+    font-size: 10px;
+    color: var(--yellow);
+    background: rgba(255,214,10,0.06);
+    border: 1px solid rgba(255,214,10,0.15);
+    border-radius: 4px;
+    padding: 4px 10px;
+  }
+
+  /* ── REJECTED ── */
+  .rejected-list { display: flex; flex-direction: column; gap: 6px; }
+  .rejected-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  .rej-teams { font-size: 13px; color: var(--muted); flex: 1; }
+  .rej-reason {
+    font-family: 'Syne Mono', monospace;
+    font-size: 9px;
+    color: var(--red);
+    letter-spacing: 0.08em;
+    opacity: 0.7;
+  }
+
+  /* ── ERROR ── */
+  .error-box {
+    background: rgba(255,69,96,0.06);
+    border: 1px solid rgba(255,69,96,0.3);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+    font-size: 13px;
+    color: var(--red);
+    line-height: 1.6;
+  }
+  .error-box strong { display: block; font-size: 15px; margin-bottom: 6px; }
+
+  /* refresh btn */
+  .refresh-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 8px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex; align-items: center; gap: 6px;
+    margin-bottom: 24px;
+  }
+  .refresh-btn:hover { border-color: var(--green); color: var(--green); }
+
+  @media(max-width:580px) {
+    .summary-strip { grid-template-columns: repeat(2,1fr); }
+    .pick-stats { grid-template-columns: repeat(2,1fr); }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- HEADER -->
+  <header>
+    <div class="header-top">
+      <div class="logo-area">
+        <div class="logo-tag">// daily edge finder</div>
+        <h1>FOOTBALL<br><em>PICKS</em></h1>
+      </div>
+      <div class="date-box">
+        <div class="day" id="dayLabel">—</div>
+        <div class="date" id="dateLabel">—</div>
+      </div>
+    </div>
+    <div class="status-bar">
+      <div class="status-dot"></div>
+      <div class="status-text" id="statusText">Initialising engine...</div>
+    </div>
+  </header>
+
+  <!-- LEAGUES FILTER -->
+  <div class="leagues-row" id="leaguesRow">
+    <button class="league-btn active" data-league="all">All Leagues</button>
+    <button class="league-btn" data-league="39">Premier League</button>
+    <button class="league-btn" data-league="140">La Liga</button>
+    <button class="league-btn" data-league="78">Bundesliga</button>
+    <button class="league-btn" data-league="135">Serie A</button>
+    <button class="league-btn" data-league="61">Ligue 1</button>
+    <button class="league-btn" data-league="88">Eredivisie</button>
+    <button class="league-btn" data-league="94">Primeira Liga</button>
+    <button class="league-btn" data-league="203">Süper Lig</button>
+    <button class="league-btn" data-league="144">Belgian Pro</button>
+    <button class="league-btn" data-league="179">Scottish Prem</button>
+  </div>
+
+  <!-- SUMMARY -->
+  <div class="summary-strip">
+    <div class="stat-card">
+      <div class="s-label">Today's Picks</div>
+      <div class="s-val green" id="statPicks">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="s-label">Games Scanned</div>
+      <div class="s-val" id="statScanned">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="s-label">Rejected</div>
+      <div class="s-val red" id="statRejected">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="s-label">Best Edge</div>
+      <div class="s-val yellow" id="statEdge">—</div>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div id="mainContent">
+    <div class="loading-screen">
+      <div class="loader"></div>
+      <div class="loading-steps">
+        <div class="load-step" id="ls1"><span class="step-icon">📡</span> Connecting to data feeds...</div>
+        <div class="load-step" id="ls2"><span class="step-icon">⚽</span> Fetching today's fixtures...</div>
+        <div class="load-step" id="ls3"><span class="step-icon">📊</span> Loading team statistics...</div>
+        <div class="load-step" id="ls4"><span class="step-icon">💰</span> Pulling live Bet365 odds...</div>
+        <div class="load-step" id="ls5"><span class="step-icon">🧮</span> Running edge calculations...</div>
+        <div class="load-step" id="ls6"><span class="step-icon">🎯</span> Selecting top picks...</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── CONFIG ──
+const FOOTBALL_API_KEY = '4606b9c5f4caa88d1502b53a6ac2ac2c';
+const ODDS_API_KEY = 'faed6119216387a3f82f5749431b4c00';
+
+const LEAGUES = {
+  39:  { name: 'Premier League', country: '🏴󠁧󠁢󠁥󠁮󠁧󠁿' },
+  140: { name: 'La Liga',        country: '🇪🇸' },
+  78:  { name: 'Bundesliga',     country: '🇩🇪' },
+  135: { name: 'Serie A',        country: '🇮🇹' },
+  61:  { name: 'Ligue 1',        country: '🇫🇷' },
+  88:  { name: 'Eredivisie',     country: '🇳🇱' },
+  94:  { name: 'Primeira Liga',  country: '🇵🇹' },
+  203: { name: 'Süper Lig',      country: '🇹🇷' },
+  144: { name: 'Belgian Pro',    country: '🇧🇪' },
+  179: { name: 'Scottish Prem',  country: '🏴󠁧󠁢󠁳󠁣󠁴󠁿' },
+};
+
+const LEAGUE_IDS = Object.keys(LEAGUES).map(Number);
+
+// ── STATE ──
+let allResults = null;
+let activeLeague = 'all';
+
+// ── DATE ──
+const now = new Date();
+document.getElementById('dayLabel').textContent = now.toLocaleDateString('en-GB', { weekday: 'long' }).toUpperCase();
+document.getElementById('dateLabel').textContent = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+
+// ── LOADING STEPS ──
+async function stepLoad(id, delay = 0) {
+  await sleep(delay);
+  const el = document.getElementById(id);
+  el.classList.add('active');
+  await sleep(700);
+  el.classList.add('done');
+}
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function setStatus(msg, highlight = '') {
+  document.getElementById('statusText').innerHTML = highlight
+    ? `${msg} <span>${highlight}</span>`
+    : msg;
+}
+
+// ── FETCH FIXTURES ──
+async function fetchFixtures(leagueId) {
+  const date = now.toISOString().split('T')[0];
+  const url = `https://v3.football.api-sports.io/fixtures?league=${leagueId}&season=2024&date=${date}`;
+  const res = await fetch(url, { headers: { 'x-apisports-key': FOOTBALL_API_KEY } });
+  if (!res.ok) throw new Error(`Fixtures API error: ${res.status}`);
+  const data = await res.json();
+  return data.response || [];
+}
+
+// ── FETCH TEAM STATS ──
+async function fetchTeamStats(teamId, leagueId) {
+  try {
+    const url = `https://v3.football.api-sports.io/teams/statistics?team=${teamId}&league=${leagueId}&season=2024`;
+    const res = await fetch(url, { headers: { 'x-apisports-key': FOOTBALL_API_KEY } });
+    const data = await res.json();
+    return data.response || null;
+  } catch { return null; }
+}
+
+// ── FETCH ODDS (The Odds API) ──
+async function fetchOdds() {
+  const sports = ['soccer_england_league1','soccer_spain_la_liga','soccer_germany_bundesliga',
+    'soccer_italy_serie_a','soccer_france_ligue_one','soccer_netherlands_eredivisie',
+    'soccer_portugal_primeira_liga','soccer_turkey_super_lig','soccer_belgium_first_div','soccer_scotland_premiership'];
+  let allOdds = [];
+  for (const sport of sports) {
+    try {
+      const url = `https://api.the-odds-api.com/v4/sports/${sport}/odds/?apiKey=${ODDS_API_KEY}&regions=uk&markets=h2h&oddsFormat=decimal&bookmakers=bet365`;
+      const res = await fetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) allOdds = allOdds.concat(data);
+      }
+    } catch {}
+    await sleep(100);
+  }
+  return allOdds;
+}
+
+// ── SCORING MODEL ──
+function scoreMatch(fixture, homeStats, awayStats, oddsData) {
+  const home = fixture.teams.home;
+  const away = fixture.teams.away;
+
+  // Form score (wins in last 5)
+  function formScore(stats) {
+    if (!stats) return 50;
+    const form = stats.form || '';
+    const last5 = form.slice(-5);
+    const wins = (last5.match(/W/g) || []).length;
+    const draws = (last5.match(/D/g) || []).length;
+    return (wins * 3 + draws) / 15 * 100;
+  }
+
+  // Goals scored avg
+  function goalsAvg(stats, type) {
+    if (!stats) return 1.2;
+    const g = stats.goals?.[type]?.total?.average;
+    return parseFloat(g) || 1.2;
+  }
+
+  // Win rate
+  function winRate(stats, venue) {
+    if (!stats) return 0.4;
+    const played = stats.fixtures?.[venue]?.played || 1;
+    const wins = stats.fixtures?.[venue]?.wins || 0;
+    return wins / played;
+  }
+
+  const homeForm = formScore(homeStats);
+  const awayForm = formScore(awayStats);
+  const homeGoals = goalsAvg(homeStats, 'for');
+  const awayGoals = goalsAvg(awayStats, 'for');
+  const homeWR = winRate(homeStats, 'home');
+  const awayWR = winRate(awayStats, 'away');
+
+  // Home advantage factor: 0.1 boost
+  const homeStrength = (homeForm * 0.4 + homeWR * 60 * 0.4 + homeGoals * 10 * 0.2) + 8;
+  const awayStrength = awayForm * 0.4 + awayWR * 60 * 0.4 + awayGoals * 10 * 0.2;
+
+  const total = homeStrength + awayStrength + 20; // 20 = draw pool
+  let homeProb = homeStrength / total;
+  let awayProb = awayStrength / total;
+  let drawProb = 1 - homeProb - awayProb;
+
+  // Clamp
+  homeProb = Math.min(0.82, Math.max(0.1, homeProb));
+  awayProb = Math.min(0.82, Math.max(0.1, awayProb));
+  drawProb = Math.max(0.05, 1 - homeProb - awayProb);
+
+  // Normalise
+  const probSum = homeProb + awayProb + drawProb;
+  homeProb /= probSum;
+  awayProb /= probSum;
+  drawProb /= probSum;
+
+  // Find odds
+  const matchOdds = findOdds(home.name, away.name, oddsData);
+  const homeOdds = matchOdds?.home || implied(homeProb);
+  const awayOdds = matchOdds?.away || implied(awayProb);
+  const drawOdds = matchOdds?.draw || implied(drawProb);
+
+  // Market implied probs (with overround removed)
+  const mHome = 1 / homeOdds;
+  const mAway = 1 / awayOdds;
+  const mDraw = 1 / drawOdds;
+  const overround = mHome + mAway + mDraw;
+  const mHomeTrue = mHome / overround;
+  const mAwayTrue = mAway / overround;
+  const mDrawTrue = mDraw / overround;
+
+  // Edge = model prob - market prob
+  const homeEdge = homeProb - mHomeTrue;
+  const awayEdge = awayProb - mAwayTrue;
+  const drawEdge = drawProb - mDrawTrue;
+
+  // Best edge
+  let bestEdge = homeEdge, bestTeam = home.name, bestProb = homeProb, bestOdds = homeOdds, bestSide = 'home';
+  if (awayEdge > bestEdge) { bestEdge = awayEdge; bestTeam = away.name; bestProb = awayProb; bestOdds = awayOdds; bestSide = 'away'; }
+  if (drawEdge > bestEdge) { bestEdge = drawEdge; bestTeam = 'Draw'; bestProb = drawProb; bestOdds = drawOdds; bestSide = 'draw'; }
+
+  // Confidence grade
+  function grade(edge, prob) {
+    if (edge >= 0.10 && prob >= 0.55) return 'A';
+    if (edge >= 0.07 && prob >= 0.48) return 'B';
+    if (edge >= 0.05 && prob >= 0.42) return 'C';
+    return 'D';
+  }
+
+  const g = grade(bestEdge, bestProb);
+
+  return {
+    fixture,
+    home: home.name,
+    away: away.name,
+    leagueId: fixture.league.id,
+    leagueName: fixture.league.name,
+    kickoff: fixture.fixture.date,
+    homeProb, awayProb, drawProb,
+    homeOdds, awayOdds, drawOdds,
+    homeEdge, awayEdge, drawEdge,
+    bestEdge, bestTeam, bestProb, bestOdds, bestSide,
+    grade: g,
+    qualified: bestEdge >= 0.05 && g !== 'D',
+    homeForm, awayForm,
+    homeWR, awayWR,
+  };
+}
+
+function findOdds(homeTeam, awayTeam, oddsData) {
+  // fuzzy match on team name
+  for (const game of oddsData) {
+    const h = game.home_team?.toLowerCase() || '';
+    const a = game.away_team?.toLowerCase() || '';
+    const hn = homeTeam.toLowerCase();
+    const an = awayTeam.toLowerCase();
+    if (nameSimilar(h, hn) && nameSimilar(a, an)) {
+      const bet365 = game.bookmakers?.find(b => b.key === 'bet365');
+      const h2h = bet365?.markets?.find(m => m.key === 'h2h');
+      if (h2h) {
+        const outcomes = h2h.outcomes;
+        const home = outcomes.find(o => nameSimilar(o.name.toLowerCase(), hn))?.price || null;
+        const away = outcomes.find(o => nameSimilar(o.name.toLowerCase(), an))?.price || null;
+        const draw = outcomes.find(o => o.name === 'Draw')?.price || null;
+        return { home, away, draw };
+      }
+    }
+  }
+  return null;
+}
+
+function nameSimilar(a, b) {
+  if (a === b) return true;
+  const short = (s) => s.split(' ').slice(0, 2).join(' ');
+  return short(a) === short(b) || a.includes(short(b)) || b.includes(short(a));
+}
+
+function implied(prob) {
+  return prob > 0 ? +(1 / prob).toFixed(2) : 10;
+}
+
+// ── REJECT REASONS ──
+function rejectReason(result) {
+  if (result.bestEdge < 0.05) return `Edge too low (${pct(result.bestEdge)})`;
+  if (result.bestProb < 0.35) return 'Low win probability';
+  if (result.grade === 'D') return 'D-grade confidence';
+  return null;
+}
+
+// ── FORMAT HELPERS ──
+function pct(v) { return (v * 100).toFixed(1) + '%'; }
+function fmtOdds(o) { return o ? o.toFixed(2) : '—'; }
+function fmtTime(dateStr) {
+  const d = new Date(dateStr);
+  return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+}
+
+// ── RENDER ──
+function renderResults(results) {
+  const picks = results.filter(r => r.qualified).sort((a, b) => b.bestEdge - a.bestEdge).slice(0, 5);
+  const watchlist = results.filter(r => !r.qualified && r.bestEdge >= 0.03 && r.grade !== 'D').slice(0, 6);
+  const rejected = results.filter(r => !r.qualified).slice(0, 10);
+
+  // Filter by active league
+  const filteredPicks = activeLeague === 'all' ? picks : picks.filter(r => r.leagueId == activeLeague);
+  const filteredWatch = activeLeague === 'all' ? watchlist : watchlist.filter(r => r.leagueId == activeLeague);
+
+  // Stats
+  document.getElementById('statPicks').textContent = filteredPicks.length;
+  document.getElementById('statScanned').textContent = results.length;
+  document.getElementById('statRejected').textContent = results.length - picks.length;
+  const bestEdge = picks[0]?.bestEdge;
+  document.getElementById('statEdge').textContent = bestEdge ? pct(bestEdge) : '—';
+
+  let html = '';
+
+  // PICKS
+  html += `<div class="section-label">Today's Picks (${filteredPicks.length})</div>`;
+
+  if (filteredPicks.length === 0) {
+    html += `<div class="no-picks">
+      <div class="np-icon">🔒</div>
+      <h2>No Picks Today</h2>
+      <p>The model found no games with sufficient edge${activeLeague !== 'all' ? ' in this league' : ' across all leagues'}. This is normal — sit out and protect your bankroll.</p>
+    </div>`;
+  } else {
+    html += `<div class="picks-list">`;
+    filteredPicks.forEach((r, i) => {
+      const leagueInfo = LEAGUES[r.leagueId] || { name: r.leagueName, country: '🌍' };
+      html += `<div class="pick-card grade-${r.grade.toLowerCase()}" style="animation-delay:${i*0.1}s">
+        <div class="pick-inner">
+          <div class="pick-top">
+            <div class="pick-meta">
+              <span class="league-tag">${leagueInfo.country} ${leagueInfo.name}</span>
+              <span class="kick-time">KO ${fmtTime(r.kickoff)}</span>
+            </div>
+            <div class="grade-badge ${r.grade}">GRADE ${r.grade}</div>
+          </div>
+          <div class="pick-teams">
+            <div class="matchup">${r.home} <span style="color:var(--muted);font-weight:400">vs</span> ${r.away}</div>
+            <div class="bet-line">→ Bet on: <strong>${r.bestTeam}${r.bestSide === 'draw' ? '' : ' to Win'}</strong></div>
+          </div>
+          <div class="pick-stats">
+            <div class="pstat">
+              <div class="ps-label">Our Probability</div>
+              <div class="ps-val green">${pct(r.bestProb)}</div>
+            </div>
+            <div class="pstat">
+              <div class="ps-label">Edge vs Market</div>
+              <div class="ps-val green">+${pct(r.bestEdge)}</div>
+            </div>
+            <div class="pstat">
+              <div class="ps-label">Bet365 Odds</div>
+              <div class="ps-val blue">${fmtOdds(r.bestOdds)}</div>
+            </div>
+            <div class="pstat">
+              <div class="ps-label">Market Prob</div>
+              <div class="ps-val">${pct(r.bestProb - r.bestEdge)}</div>
+            </div>
+          </div>
+          <div class="bet-action">
+            <span class="bet-instruction">Open Bet365 → find <span class="highlight">${r.home} v ${r.away}</span> → back <span class="highlight">${r.bestTeam}</span></span>
+            <a href="https://www.bet365.com" target="_blank" class="bet365-btn">Open Bet365 →</a>
+          </div>
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  // WATCHLIST
+  if (filteredWatch.length > 0) {
+    html += `<div class="section-label" style="margin-top:8px">Watchlist — Close But Not Qualified (${filteredWatch.length})</div>
+    <div class="watch-list">`;
+    filteredWatch.forEach(r => {
+      const leagueInfo = LEAGUES[r.leagueId] || { name: r.leagueName, country: '🌍' };
+      html += `<div class="watch-card">
+        <div>
+          <div class="watch-teams">${r.home} vs ${r.away}</div>
+          <div class="watch-league">${leagueInfo.country} ${leagueInfo.name} · KO ${fmtTime(r.kickoff)}</div>
+        </div>
+        <div class="watch-reason">Edge ${pct(r.bestEdge)} — just below threshold</div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  // REJECTED
+  if (rejected.length > 0) {
+    html += `<div class="section-label" style="margin-top:8px">Rejected (${rejected.length} games failed filters)</div>
+    <div class="rejected-list">`;
+    rejected.slice(0, 8).forEach(r => {
+      html += `<div class="rejected-item">
+        <span class="rej-teams">${r.home} vs ${r.away}</span>
+        <span class="rej-reason">✕ ${rejectReason(r) || 'insufficient edge'}</span>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  document.getElementById('mainContent').innerHTML =
+    `<button class="refresh-btn" onclick="runEngine()">↻ Refresh Picks</button>` + html;
+}
+
+function renderError(msg) {
+  document.getElementById('mainContent').innerHTML = `
+    <div class="error-box">
+      <strong>⚠ Data Feed Error</strong>
+      ${msg}<br><br>
+      This can happen if: the API free tier limit is reached, or there are no matches scheduled today in these leagues.
+    </div>
+    <button class="refresh-btn" onclick="runEngine()">↻ Try Again</button>`;
+}
+
+// ── LEAGUE FILTER ──
+document.getElementById('leaguesRow').addEventListener('click', e => {
+  const btn = e.target.closest('.league-btn');
+  if (!btn) return;
+  document.querySelectorAll('.league-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  activeLeague = btn.dataset.league;
+  if (allResults) renderResults(allResults);
+});
+
+// ── MAIN ENGINE ──
+async function runEngine() {
+  document.getElementById('mainContent').innerHTML = `
+    <div class="loading-screen">
+      <div class="loader"></div>
+      <div class="loading-steps">
+        <div class="load-step active" id="ls1"><span class="step-icon">📡</span> Connecting to data feeds...</div>
+        <div class="load-step" id="ls2"><span class="step-icon">⚽</span> Fetching today's fixtures...</div>
+        <div class="load-step" id="ls3"><span class="step-icon">📊</span> Loading team statistics...</div>
+        <div class="load-step" id="ls4"><span class="step-icon">💰</span> Pulling live Bet365 odds...</div>
+        <div class="load-step" id="ls5"><span class="step-icon">🧮</span> Running edge calculations...</div>
+        <div class="load-step" id="ls6"><span class="step-icon">🎯</span> Selecting top picks...</div>
+      </div>
+    </div>`;
+
+  document.getElementById('statPicks').textContent = '—';
+  document.getElementById('statScanned').textContent = '—';
+  document.getElementById('statRejected').textContent = '—';
+  document.getElementById('statEdge').textContent = '—';
+
+  try {
+    await stepLoad('ls1', 200);
+    setStatus('Connected to API-Football &', 'live');
+
+    // Fetch all fixtures
+    await stepLoad('ls2', 300);
+    setStatus('Fetching fixtures from', '10 leagues');
+    let fixtures = [];
+    for (const lid of LEAGUE_IDS) {
+      try {
+        const f = await fetchFixtures(lid);
+        fixtures = fixtures.concat(f);
+      } catch {}
+      await sleep(120);
+    }
+    setStatus(`Found`, `${fixtures.length} fixtures today`);
+
+    if (fixtures.length === 0) {
+      document.getElementById('ls3').classList.add('active', 'done');
+      document.getElementById('ls4').classList.add('active', 'done');
+      document.getElementById('ls5').classList.add('active', 'done');
+      document.getElementById('ls6').classList.add('active', 'done');
+      allResults = [];
+      renderResults([]);
+      return;
+    }
+
+    // Fetch team stats for each fixture
+    await stepLoad('ls3', 200);
+    setStatus('Analysing team form & statistics...');
+    const statsCache = {};
+    for (const fix of fixtures.slice(0, 20)) { // limit for free tier
+      const hid = fix.teams.home.id;
+      const aid = fix.teams.away.id;
+      const lid = fix.league.id;
+      if (!statsCache[hid]) statsCache[hid] = await fetchTeamStats(hid, lid);
+      if (!statsCache[aid]) statsCache[aid] = await fetchTeamStats(aid, lid);
+      await sleep(80);
+    }
+
+    // Fetch odds
+    await stepLoad('ls4', 200);
+    setStatus('Pulling Bet365 odds...');
+    const oddsData = await fetchOdds();
+    setStatus('Odds loaded from', `${oddsData.length} matches`);
+
+    // Score all matches
+    await stepLoad('ls5', 300);
+    setStatus('Calculating edges...');
+    const results = fixtures.map(fix => {
+      const hStats = statsCache[fix.teams.home.id];
+      const aStats = statsCache[fix.teams.away.id];
+      return scoreMatch(fix, hStats, aStats, oddsData);
+    });
+
+    await stepLoad('ls6', 400);
+    allResults = results;
+    const pickCount = results.filter(r => r.qualified).length;
+    setStatus(pickCount > 0 ? `Found ${pickCount} qualified pick${pickCount > 1 ? 's' : ''}` : 'No picks today — sit out', pickCount > 0 ? `✓` : '');
+
+    renderResults(results);
+
+  } catch (err) {
+    console.error(err);
+    renderError(err.message || 'Unknown error. Check your API keys and try again.');
+  }
+}
+
+// ── BOOT ──
+runEngine();
+</script>
+</body>
+</html>
